@@ -54,7 +54,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    protected function readSocketMock($length)
+    public function readSocketMock($length)
     {
         return $this->getBuffer();
     }
@@ -68,10 +68,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
             ->method('read')
             ->will($this->returnCallback(function ($length) { return $this->readSocketMock($length); }))
         ;
-//        $socket
-//            ->expects($this->atLeastOnce())
-//            ->method('send')
-//        ;
+
         $loader = new ArrayLoader();
         $config = $loader->load($this->getConfigArray());
 
