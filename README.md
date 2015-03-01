@@ -5,7 +5,7 @@ Tradukoj connector: client socket api connector for Tradukoj server
 [![Latest Stable Version](https://poser.pugx.org/jlaso/tradukoj-connector/v/stable.png)](https://packagist.org/packages/jlaso/tradukoj-connector)
 [![Total Downloads](https://poser.pugx.org/jlaso/tradukoj-connector/downloads.png)](https://packagist.org/packages/jlaso/tradukoj-connector)
 [![Latest Unstable Version](https://poser.pugx.org/jlaso/tradukoj-connector/v/unstable.png)](https://packagist.org/packages/jlaso/tradukoj-connector)
-
+[![Coverage Status](https://coveralls.io/repos/jlaso/tradukoj-connector/badge.svg)](https://coveralls.io/r/jlaso/tradukoj-connector)
 
 ## Documentation
 
