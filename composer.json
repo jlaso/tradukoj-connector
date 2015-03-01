@@ -1,0 +1,29 @@
+{
+    "name": "jlaso/tradukoj-connector",
+    "description": "Tradukoj client socket api",
+    "keywords": ["tradukoj", "connector", "translations", "socket", "api"],
+    "homepage": "https://github.com/jlaso/tradukoj-connector",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joseluis Laso",
+            "email": "jlaso@joseluislaso.es",
+            "homepage": "http://www.joseluislaso.es/",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0",
+        "mockery/mockery": "0.9.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "JLaso\\TradukojConnector\\": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
