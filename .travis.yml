@@ -13,9 +13,9 @@ matrix:
 
 before_script:
   - composer install --prefer-source
-  - php tests/TradukojConnector/SocketServer/simple-server.php &
+#  - php tests/TradukojConnector/SocketServer/simple-server.php &
 
-after_script:
-  - echo "shutdown\n" | nc localhost 13337
+#after_script:
+#  - echo "shutdown\n" | nc localhost 13337
 
 # script: "./phpunit.sh"
