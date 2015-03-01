@@ -2,47 +2,43 @@
 
 namespace JLaso\TradukojConnector\Tests;
 
-
 use JLaso\TradukojConnector\ClientSocketApi;
 use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
 use JLaso\TradukojConnector\Output\NullOutput;
 use JLaso\TradukojConnector\Socket\SocketInterface;
 use JLaso\TradukojConnector\PostClient\PostClientInterface;
 
-
 /**
  * @coversDefaultClass \JLaso\TradukojConnector\ClientSocketApi
  */
 class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var ClientSocketApi
      */
     protected $clientSocketApi;
 
-    protected $buffer;
+    protected static $buffer;
 
     /**
      * @param mixed $buffer
      */
-    public function setBuffer($buffer)
+    public static function setBuffer($buffer)
     {
-        $this->buffer = $buffer;
+        self::$buffer = $buffer;
     }
 
     /**
      * @return mixed
      */
-    public function getBuffer()
+    public static function getBuffer()
     {
-        if(is_array($this->buffer)){
-            return array_shift($this->buffer);
+        if (is_array(self::$buffer)) {
+            return array_shift(self::$buffer);
         }
 
-        return $this->buffer;
+        return self::$buffer;
     }
-
 
     protected function getConfigArray()
     {
@@ -50,13 +46,13 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
             'project_id' => 1,
             'key' => 'key',
             'secret' => 'secret',
-            'url' => 'https://localhost/api/'
+            'url' => 'https://localhost/api/',
         );
     }
 
-    public function readSocketMock($length)
+    public static function readSocketMock($length)
     {
-        return $this->getBuffer();
+        return self::getBuffer();
     }
 
     public function setUp()
@@ -66,7 +62,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
         $socket
             ->expects($this->atLeastOnce())
             ->method('read')
-            ->will($this->returnCallback(function ($length) { return $this->readSocketMock($length); }))
+            ->will($this->returnCallback(function ($length) { return ClientReadSocketTest::readSocketMock($length); }))
         ;
 
         $loader = new ArrayLoader();
@@ -95,7 +91,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
     {
         $method = self::getMethod('readSocket');
         $compress = false;
-        $this->setBuffer(false);
+        self::setBuffer(false);
         $method->invokeArgs($this->clientSocketApi, array($compress));
     }
 
@@ -106,7 +102,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
     {
         $method = self::getMethod('readSocket');
         $compress = false;
-        $this->setBuffer('1');
+        self::setBuffer('1');
         $method->invokeArgs($this->clientSocketApi, array($compress));
     }
 
@@ -117,7 +113,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
     {
         $method = self::getMethod('readSocket');
         $compress = false;
-        $this->setBuffer('000002:001:001:A');  // size of block (2) does not match with real size (str_len('A'))
+        self::setBuffer('000002:001:001:A');  // size of block (2) does not match with real size (str_len('A'))
         $method->invokeArgs($this->clientSocketApi, array($compress));
     }
 
@@ -125,7 +121,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
     {
         $method = self::getMethod('readSocket');
         $compress = false;
-        $this->setBuffer('');
+        self::setBuffer('');
         $result = $method->invokeArgs($this->clientSocketApi, array($compress));
 
         $this->assertEquals('', $result);
@@ -136,21 +132,20 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
         $method = self::getMethod('readSocket');
         $compress = false;
 
-        $this->setBuffer('000000:000:000:');
+        self::setBuffer('000000:000:000:');
         $result = $method->invokeArgs($this->clientSocketApi, array($compress));
         $this->assertEquals('', $result);
 
-        $this->setBuffer('000001:001:001:A');
+        self::setBuffer('000001:001:001:A');
         $result = $method->invokeArgs($this->clientSocketApi, array($compress));
         $this->assertEquals('A', $result);
 
-        $this->setBuffer(array('000001:001:002:A','000001:002:002:B'));
+        self::setBuffer(array('000001:001:002:A', '000001:002:002:B'));
         $result = $method->invokeArgs($this->clientSocketApi, array($compress));
         $this->assertEquals('AB', $result);
 
-        $this->setBuffer(array('000001:001:003:A','000001:002:003:B','000002:003:003:CD'));
+        self::setBuffer(array('000001:001:003:A', '000001:002:003:B', '000002:003:003:CD'));
         $result = $method->invokeArgs($this->clientSocketApi, array($compress));
         $this->assertEquals('ABCD', $result);
     }
-
 }

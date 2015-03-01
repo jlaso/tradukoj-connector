@@ -9,7 +9,6 @@ use JLaso\TradukojConnector\Socket\Socket;
  */
 class SocketTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var Socket
      */
@@ -63,5 +62,4 @@ class SocketTest extends \PHPUnit_Framework_TestCase
 
         $this->socket->close();
     }
-
 }

@@ -2,7 +2,6 @@
 
 namespace JLaso\TradukojConnector\Tests;
 
-
 use JLaso\TradukojConnector\ClientSocketApi;
 use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
 use JLaso\TradukojConnector\Output\ConsoleOutput;
@@ -10,10 +9,8 @@ use JLaso\TradukojConnector\Output\NullOutput;
 use JLaso\TradukojConnector\Socket\SocketInterface;
 use JLaso\TradukojConnector\PostClient\PostClientInterface;
 
-
 class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var ClientSocketApi
      */
@@ -25,11 +22,11 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
             'project_id' => 1,
             'key' => 'key',
             'secret' => 'secret',
-            'url' => 'https://localhost/api/'
+            'url' => 'https://localhost/api/',
         );
     }
 
-    protected function postClientCallMock($url, $data)
+    public static function postClientCallMock($url, $data)
     {
         return array(
             'result' => false,
@@ -51,7 +48,7 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnCallback(
                 function ($len, $type) {
 
-                    switch($len){
+                    switch ($len) {
                         case 10:
                             return ClientSocketApi::ACK.PHP_EOL;
 
@@ -75,11 +72,15 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
         $postClient
             //->expects($this->atLeastOnce())
             ->method('call')
-            ->will($this->returnCallback(function ($url, $data) { return $this->postClientCallMock($url, $data); }))
+            ->will($this->returnCallback(
+                function ($url, $data) {
+                    return ClientSocketApiTest::postClientCallMock($url, $data);
+                }
+            ))
         ;
 
         $nullOutput = new NullOutput();
-        
+
         $this->clientSocketApi = new ClientSocketApi($config, $socket, $postClient, $nullOutput);
     }
 
@@ -101,7 +102,6 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
         return $property;
     }
 
-
     public function testCreateSocket()
     {
         $serverSocketRequest = self::getMethod('serverSocketRequest');
@@ -121,7 +121,7 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
     public function testCompress()
     {
         $serverSocketRequest = self::getMethod('compress');
-        $data = str_repeat('abcde',10);
+        $data = str_repeat('abcde', 10);
         $compressed = $serverSocketRequest->invokeArgs($this->clientSocketApi, array($data));
 
         $this->assertLessThan(strlen($data), strlen($compressed));
@@ -152,7 +152,7 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
 
     public function testServiceCalls()
     {
-//        $debug = self::getProperty('debug');
+        //        $debug = self::getProperty('debug');
 //        $debug->setValue($this->clientSocketApi, true);
 //
 //        $consoleOutput = new ConsoleOutput();
@@ -212,5 +212,4 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
         $init = $this->getProperty('init');
         $this->assertFalse($init->getValue($this->clientSocketApi));
     }
-
 }

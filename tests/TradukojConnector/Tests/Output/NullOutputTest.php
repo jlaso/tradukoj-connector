@@ -1,15 +1,14 @@
 <?php
 
 namespace JLaso\TradukojConnector\Tests;
-use JLaso\TradukojConnector\Output\NullOutput;
 
+use JLaso\TradukojConnector\Output\NullOutput;
 
 /**
  * @coversDefaultClass \JLaso\TradukojConnector\ClientSocketApi
  */
 class NullOutputTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var NullOutput
      */
@@ -25,5 +24,4 @@ class NullOutputTest extends \PHPUnit_Framework_TestCase
         $this->expectOutputString('');
         $this->nullOutput->write('ABCDE');
     }
-
 }
