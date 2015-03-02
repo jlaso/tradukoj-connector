@@ -17,5 +17,4 @@ before_script:
 
 after_script:
   - echo "shutdown\n" | nc localhost 13337
-
-# script: "./phpunit.sh"
+  - php vendor/bin/coveralls
