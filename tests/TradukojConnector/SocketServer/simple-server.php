@@ -7,6 +7,8 @@
  * thanks vardhan ( at ) rogers ( dot ) com
  */
 
+$time = microtime(true);
+
 $port = 13337;
 
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -21,7 +23,12 @@ while (true) {
     $write = NULL;
     $except = NULL;
 
-    if (socket_select($read, $write, $except, NULL) < 1){
+    if(intval(microtime(true)-$time)>10){  // watchdog of 10 seconds
+	socket_close($sock);
+        exit(0);
+    }
+
+    if (socket_select($read, $write, $except, 1) < 1){
         continue;
     }
 
