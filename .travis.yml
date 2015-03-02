@@ -11,4 +11,11 @@ matrix:
   allow_failures:
     - php: hhvm-nightly
 
-before_script: composer install --prefer-source
+before_script:
+  - composer install --prefer-source
+#  - php tests/TradukojConnector/SocketServer/simple-server.php &
+
+#after_script:
+#  - echo "shutdown\n" | nc localhost 13337
+
+# script: "./phpunit.sh"

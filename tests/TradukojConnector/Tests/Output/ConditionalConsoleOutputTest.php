@@ -4,13 +4,11 @@ namespace JLaso\TradukojConnector\Tests;
 
 use JLaso\TradukojConnector\Output\ConditionalConsoleOutput;
 
-
 /**
  * @coversDefaultClass \JLaso\TradukojConnector\ClientSocketApi
  */
 class ConditionalConsoleOutputTest extends \PHPUnit_Framework_TestCase
 {
-
     public function testWriteIfTrue()
     {
         $output = new ConditionalConsoleOutput(true);
@@ -38,5 +36,4 @@ class ConditionalConsoleOutputTest extends \PHPUnit_Framework_TestCase
         $this->expectOutputString('');
         $output->writeln('ABCDE');
     }
-
 }

@@ -9,7 +9,6 @@ use JLaso\TradukojConnector\Socket\Socket;
  */
 class SocketTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var Socket
      */
@@ -46,22 +45,21 @@ class SocketTest extends \PHPUnit_Framework_TestCase
         $this->socket->connect('127.0.0.1');
     }
 
-    public function testSocket()
-    {
-        $this->socket->create(AF_INET, SOCK_STREAM, SOL_TCP);
-        $this->socket->connect('localhost', 13337);
-
-        $this->socket->write("HELLO!");
-        $result = $this->socket->read(4096, PHP_NORMAL_READ);
-        $this->assertEquals("HELLO!\n", $result);
-
-        $lastError = $this->socket->lastError();
-        $this->assertEquals(0, $lastError);
-
-        $lastError = $this->socket->lastErrorAsString();
-        $this->assertEquals('Undefined error: 0', $lastError);
-
-        $this->socket->close();
-    }
-
+//    public function testSocket()
+//    {
+//        $this->socket->create(AF_INET, SOCK_STREAM, SOL_TCP);
+//        $this->socket->connect('localhost', 13337);
+//
+//        $this->socket->write("HELLO!");
+//        $result = $this->socket->read(4096, PHP_NORMAL_READ);
+//        $this->assertEquals("HELLO!\n", $result);
+//
+//        $lastError = $this->socket->lastError();
+//        $this->assertEquals(0, $lastError);
+//
+//        $lastError = $this->socket->lastErrorAsString();
+//        $this->assertEquals('Undefined error: 0', $lastError);
+//
+//        $this->socket->close();
+//    }
 }

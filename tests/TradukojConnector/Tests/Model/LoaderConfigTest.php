@@ -6,14 +6,13 @@ use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
 
 class LoaderConfigTest extends \PHPUnit_Framework_TestCase
 {
-
     public function testArrayLoaderConfig()
     {
         $configArray = array(
             'project_id' => 1,
             'key' => 'key',
             'secret' => 'secret',
-            'url' => 'https://localhost/api/'
+            'url' => 'https://localhost/api/',
         );
         $loader = new ArrayLoader();
         $config = $loader->load($configArray);
@@ -22,7 +21,6 @@ class LoaderConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($configArray['key'], $config->getKey());
         $this->assertEquals($configArray['secret'], $config->getSecret());
         $this->assertEquals($configArray['url'], $config->getEndpoint());
-
     }
 
     /**
@@ -33,5 +31,4 @@ class LoaderConfigTest extends \PHPUnit_Framework_TestCase
         $loader = new ArrayLoader();
         $config = $loader->load(array());
     }
-
 }

@@ -11,7 +11,6 @@ use JLaso\TradukojConnector\PostClient\PostCurl;
  */
 class PostCurlTest extends \PHPUnit_Framework_TestCase
 {
-
     /**
      * @var PostCurl
      */
@@ -42,5 +41,4 @@ class PostCurlTest extends \PHPUnit_Framework_TestCase
             $result
         );
     }
-
 }
