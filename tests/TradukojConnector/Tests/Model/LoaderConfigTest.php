@@ -14,8 +14,8 @@ class LoaderConfigTest extends \PHPUnit_Framework_TestCase
             'secret' => 'secret',
             'url' => 'https://localhost/api/',
         );
-        $loader = new ArrayLoader();
-        $config = $loader->load($configArray);
+
+        $config = ArrayLoader::load($configArray);
 
         $this->assertEquals($configArray['project_id'], $config->getProjectId());
         $this->assertEquals($configArray['key'], $config->getKey());

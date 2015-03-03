@@ -14,5 +14,5 @@ interface LoaderInterface
      *
      * @return ClientApiConfig
      */
-    public function load($source);
+    public static function load($source);
 }

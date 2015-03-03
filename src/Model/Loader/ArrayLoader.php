@@ -17,7 +17,7 @@ class ArrayLoader implements LoaderInterface
      *
      * @throws InvalidConfigException
      */
-    public function load($source = array())
+    public static function load($source = array())
     {
         $config = new ClientApiConfig();
         try {

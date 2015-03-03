@@ -65,8 +65,7 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
             ))
         ;
 
-        $loader = new ArrayLoader();
-        $config = $loader->load($this->getConfigArray());
+        $config = ArrayLoader::load($this->getConfigArray());
 
         $postClient = $this->getMock('JLaso\\TradukojConnector\\PostClient\\PostClientInterface');
         $postClient
