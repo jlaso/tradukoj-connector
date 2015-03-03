@@ -65,8 +65,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnCallback(function ($length) { return ClientReadSocketTest::readSocketMock($length); }))
         ;
 
-        $loader = new ArrayLoader();
-        $config = $loader->load($this->getConfigArray());
+        $config = ArrayLoader::load($this->getConfigArray());
 
         $postClient = $this->getMock('JLaso\\TradukojConnector\\PostClient\\PostClientInterface');
 
