@@ -110,9 +110,6 @@ class ClientSocketApi
         if ($this->init) {
             $this->socket->close();
         }
-
-        $this->socket->create(AF_INET, SOCK_STREAM, SOL_TCP);
-
         // wait to populate socket
         sleep(2);
 

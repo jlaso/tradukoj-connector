@@ -7,7 +7,7 @@ namespace JLaso\TradukojConnector\Socket;
  */
 interface SocketInterface
 {
-    public function create($domain, $type, $protocol);
+    public function __construct();
 
     public function connect($address, $port = 0);
 

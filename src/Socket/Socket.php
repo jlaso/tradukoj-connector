@@ -11,17 +11,10 @@ class Socket implements SocketInterface
 {
     protected $socket;
 
-    /**
-     * @param $domain
-     * @param $type
-     * @param $protocol
-     *
-     * @throws CreateSocketException
-     */
-    public function create($domain, $type, $protocol)
+    public function __construct()
     {
         try {
-            $this->socket = socket_create($domain, $type, $protocol);
+            $this->socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         } catch (\Exception $e) {
             throw new CreateSocketException($e->getMessage());
         }
@@ -89,6 +82,10 @@ class Socket implements SocketInterface
      */
     public function lastErrorAsString()
     {
-        return socket_strerror(socket_last_error($this->socket));
+        if($error = socket_last_error($this->socket)) {
+            return socket_strerror($error);
+        }
+
+        return "Success";
     }
 }
