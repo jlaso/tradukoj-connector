@@ -31,6 +31,9 @@ class ClientSocketApi
     protected $init = false;
     protected $debug;
 
+    const DONT_WAIT_RESPONSE = false;
+    const WAIT_RESPONSE = true;
+
     const ACK    = 'ACK';
     const NO_ACK = 'NO-ACK';
     const BLOCK_SIZE = 1024;
@@ -43,13 +46,13 @@ class ClientSocketApi
 
     // service commands
     const SVC_SHUTDOWN = 'shutdown';
-    const SVC_GET_BUNDLE_INDEX = 'bundle-index';
+    //const SVC_GET_BUNDLE_INDEX = 'bundle-index';
     const SVC_GET_CATALOG_INDEX = 'catalog-index';
-    const SVC_GET_KEY_INDEX = 'key-index';
-    const SVC_GET_TRANSLATIONS = 'translations';
-    const SVC_GET_TRANSLATION_DETAILS = 'translation-details';
-    const SVC_GET_COMMENT = 'get-comment';
-    const SVC_PUT_MESSAGE = 'put-message';
+    //const SVC_GET_KEY_INDEX = 'key-index';
+    //const SVC_GET_TRANSLATIONS = 'translations';
+    //const SVC_GET_TRANSLATION_DETAILS = 'translation-details';
+    //const SVC_GET_COMMENT = 'get-comment';
+    //const SVC_PUT_MESSAGE = 'put-message';
     const SVC_UPDATE_MESSAGE_IF_NEWEST = 'update-message-if-newest';
     const SVC_UPDATE_COMMENT_IF_NEWEST = 'update-comment-if-newest';
     const SVC_UPLOAD_KEYS = 'upload-keys';
@@ -113,13 +116,13 @@ class ClientSocketApi
         // wait to populate socket
         sleep(2);
 
-        $this->sprintfIfDebug("connecting %s port %d\n", trim($address), intval($port));
+        $this->sprintfIfDebug("Connecting with %s through port %d\n", trim($address), intval($port));
 
         $this->socket->connect(trim($address), intval($port));
 
         $out = trim($this->socket->read(2048, PHP_NORMAL_READ));
         // print welcome message
-        $this->output->write($out);
+        $this->output->writeln($out);
 
         $this->init = true;
     }
@@ -180,12 +183,12 @@ class ClientSocketApi
      */
     protected function sendMessage($msg, $compress = true)
     {
-        $this->sprintfIfDebug("sending '%s'\n", $msg);
+        $this->sprintfIfDebug("|-- sending '%s'\n", $msg);
 
         $msg = $compress ? $this->compress($msg) : $msg.PHP_EOL;
         $len = strlen($msg);
 
-        $this->sprintfIfDebug("sending %d chars\n", $len);
+        $this->sprintfIfDebug("|\tsending %d chars\n", $len);
 
         $blocks = ceil($len / self::BLOCK_SIZE);
         for ($i = 0; $i<$blocks; $i++) {
@@ -197,32 +200,25 @@ class ClientSocketApi
             $prefix = sprintf("%06d:%03d:%03d:", strlen($block), $i+1, $blocks);
             $aux = $prefix.$block;
 
-            $this->sprintfIfDebug("sending block %d of %d, prefix = %s\n", $i+1, $blocks, $prefix);
+            $this->sprintfIfDebug("|\t\tsending block %d of %d, prefix = %s\n", $i+1, $blocks, $prefix);
 
-            if (false === $this->socket->write($aux, strlen($aux))) {
+            if (false === $this->socket->write($aux)) {
                 throw new SocketException();
             };
 
             do {
                 $read = $this->socket->read(10, PHP_NORMAL_READ);
-            } while ($read && (strpos($read, self::ACK) !== 0));
+                $this->sprintfIfDebug("|\tR: ".$read);
+                if(0 === strpos($read, self::NO_ACK)){
+                    return false;
+                }
+                if(0 === strpos($read, self::ACK)){
+                    break;
+                }
+            } while ($read);
         }
 
         return true;
-    }
-
-    /**
-     * Atomic send of a string trough the socket.
-     *
-     * @param $msg
-     *
-     * @return int
-     */
-    protected function send($msg)
-    {
-        $msg .= PHP_EOL;
-
-        return $this->socket->write($msg, strlen($msg));
     }
 
     /**
@@ -236,6 +232,7 @@ class ClientSocketApi
      */
     protected function readSocket($compress = true)
     {
+        $this->sprintfIfDebug("\n-------readSocket-------\n\n");
         $buffer = '';
         $overload = strlen('000000:000:000:');
         do {
@@ -248,6 +245,8 @@ class ClientSocketApi
                 return '';
             }
 
+            $this->sprintfIfDebug(sprintf("Received '%s'\n", $buf));
+
             if (substr_count($buf, ":") < 3) {
                 throw new SignatureSocketException('error in format');
             }
@@ -256,14 +255,16 @@ class ClientSocketApi
 
             $aux = substr($buf, $overload);
 
-            $this->sprintfIfDebug("%d/%d blocks (start of block %s)\n", $block, $blocks, substr($aux, 0, 10));
+            $this->sprintfIfDebug("\t(*) received block %d of %d (start of block `%s`)\n", $block, $blocks, substr($aux, 0, 20));
 
-            $this->output->write('R');
+            if(!$this->debug) {
+                $this->output->write('R');
+            }
 
             if ($size == strlen($aux)) {
-                $this->send(self::ACK);
+                $this->socket->write(self::ACK);
             } else {
-                $this->send(self::NO_ACK);
+                $this->socket->write(self::NO_ACK);
                 throw new BlockSizeSocketException(
                     sprintf(
                         'error in size (block %d of %d): informed %d vs %d read',
@@ -300,7 +301,7 @@ class ClientSocketApi
      * @throws SocketException
      * @throws SocketReadException
      */
-    protected function callService($command, $data = array())
+    protected function callService($command, $data = array(), $waitReponse = self::WAIT_RESPONSE)
     {
         if (!$this->init) {
             throw new ClientNotInitializedException();
@@ -315,18 +316,22 @@ class ClientSocketApi
 
         $this->sendMessage($msg);
 
-        $buffer = $this->readSocket();
+        if(self::WAIT_RESPONSE == $waitReponse) {
+            $buffer = $this->readSocket();
 
-        if ($this->debug) {
-            print $buffer;
+            if ($this->debug) {
+                print $buffer;
+            }
+
+            $result = json_decode($buffer, true);
+            if (!count($result)) {
+                throw new NullSocketResponseException();
+            }
+
+            return $result;
         }
 
-        $result = json_decode($buffer, true);
-        if (!count($result)) {
-            throw new NullSocketResponseException();
-        }
-
-        return $result;
+        return array();
     }
 
     /**
@@ -336,113 +341,117 @@ class ClientSocketApi
     /**
      * @return mixed
      */
-    protected function shutdown()
+    public function shutdown()
     {
-        $result = $this->callService(self::SVC_SHUTDOWN);
+        $this->callService(self::SVC_SHUTDOWN, array(), self::DONT_WAIT_RESPONSE);
         $this->init = false;
-
-        return $result;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getBundleIndex()
-    {
-        return $this->callService(self::SVC_GET_BUNDLE_INDEX);
-    }
+//    /**
+//     * @return mixed
+//     */
+//    public function getBundleIndex()
+//    {
+//        return $this->callService(self::SVC_GET_BUNDLE_INDEX);
+//    }
 
     /**
      * @return mixed
      */
     public function getCatalogIndex()
     {
-        return $this->callService(self::SVC_GET_CATALOG_INDEX);
+        $result = $this->callService(self::SVC_GET_CATALOG_INDEX);
+
+        if(isset($result['catalogs'])){
+            return $result['catalogs'];
+        }
+
+        return array();
     }
 
-    /**
-     * @param string $bundle
-     *
-     * @return mixed
-     */
-    public function getKeyIndex($bundle)
-    {
-        return $this->callService(self::SVC_GET_KEY_INDEX, array('bundle' => $bundle));
-    }
+//    /**
+//     * @param string $bundle
+//     *
+//     * @return mixed
+//     */
+//    public function getKeyIndex($bundle)
+//    {
+//        return $this->callService(self::SVC_GET_KEY_INDEX, array('bundle' => $bundle));
+//    }
 
-    /**
-     * @param string $bundle
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function getMessages($bundle, $key)
-    {
-        return $this->callService(
-            self::SVC_GET_TRANSLATIONS,
-            array(
-                'bundle'     => $bundle,
-                'key'        => $key,
-            )
-        );
-    }
+//    /**
+//     * @param string $bundle
+//     * @param string $key
+//     *
+//     * @return mixed
+//     */
+//    public function getMessages($bundle, $key)
+//    {
+//        return $this->callService(
+//            self::SVC_GET_TRANSLATIONS,
+//            array(
+//                'bundle'     => $bundle,
+//                'key'        => $key,
+//            )
+//        );
+//    }
+//
+//    /**
+//     * @param string $bundle
+//     * @param string $key
+//     * @param string $locale
+//     *
+//     * @return mixed
+//     */
+//    public function getMessage($bundle, $key, $locale)
+//    {
+//        return $this->callService(
+//            self::SVC_GET_TRANSLATION_DETAILS,
+//            array(
+//                'bundle'     => $bundle,
+//                'key'        => $key,
+//                'language'   => $locale,
+//            )
+//        );
+//    }
 
-    /**
-     * @param string $bundle
-     * @param string $key
-     * @param string $locale
-     *
-     * @return mixed
-     */
-    public function getMessage($bundle, $key, $locale)
-    {
-        return $this->callService(
-            self::SVC_GET_TRANSLATION_DETAILS,
-            array(
-                'bundle'     => $bundle,
-                'key'        => $key,
-                'language'   => $locale,
-            )
-        );
-    }
-
-    /**
-     * @param string $bundle
-     * @param string $key
-     *
-     * @return mixed
-     */
-    public function getComment($bundle, $key)
-    {
-        return $this->callService(
-            self::SVC_GET_COMMENT,
-            array(
-                'bundle'     => $bundle,
-                'key'        => $key,
-            )
-        );
-    }
-
-    /**
-     * @param string $bundle
-     * @param string $key
-     * @param string $language
-     * @param string $message
-     *
-     * @return mixed
-     */
-    public function putMessage($bundle, $key, $language, $message)
-    {
-        return $this->callService(
-            self::SVC_PUT_MESSAGE,
-            array(
-                'bundle'     => $bundle,
-                'key'        => $key,
-                'language'   => $language,
-                'message'    => $message,
-            )
-        );
-    }
+//    /**
+//     * @param string $bundle
+//     * @param string $key
+//     *
+//     * @return mixed
+//     */
+//    public function getComment($bundle, $key)
+//    {
+//        return $this->callService(
+//            self::SVC_GET_COMMENT,
+//            array(
+//                'bundle'     => $bundle,
+//                'key'        => $key,
+//            )
+//        );
+//    }
+//
+//    /**
+//     * @param string $bundle
+//     * @param string $key
+//     * @param string $language
+//     * @param string $message
+//     *
+//     * @return mixed
+//     */
+//    public function putMessage($bundle, $key, $language, $message)
+//    {
+//        return $this->callService(
+//            self::SVC_PUT_MESSAGE,
+//            array(
+//                'bundle'     => $bundle,
+//                'key'        => $key,
+//                'language'   => $language,
+//                'message'    => $message,
+//            )
+//        );
+//    }
 
     /**
      * @param string    $bundle
