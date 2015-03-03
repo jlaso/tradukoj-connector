@@ -19,20 +19,12 @@ class SocketTest extends \PHPUnit_Framework_TestCase
         $this->socket = new Socket();
     }
 
-    /**
-     * @expectedException \JLaso\TradukojConnector\Exception\CreateSocketException
-     */
-    public function testCreateSocketException()
-    {
-        $this->socket->create(null, null, null);
-    }
 
     /**
      * @expectedException \JLaso\TradukojConnector\Exception\CreateSocketException
      */
     public function testCreateSocketException2()
     {
-        $this->socket->create(AF_INET, SOCK_STREAM, SOL_TCP);
         $this->socket->connect('127.0.0.1');
     }
 
@@ -47,7 +39,6 @@ class SocketTest extends \PHPUnit_Framework_TestCase
 
     public function testSocket()
     {
-        $this->socket->create(AF_INET, SOCK_STREAM, SOL_TCP);
         $this->socket->connect('localhost', 13337);
 
         $this->socket->write("HELLO!");
