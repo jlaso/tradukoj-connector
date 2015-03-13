@@ -20,6 +20,16 @@ interface ProtocolAdapterInterface
     function getMaxBlockSize();
 
     /**
+     * @return string
+     */
+    function getACK();
+
+    /**
+     * @return string
+     */
+    function getNOACK();
+
+    /**
      * @param mixed $msg
      *
      * @return bool

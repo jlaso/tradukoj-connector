@@ -9,6 +9,8 @@ use JLaso\TradukojConnector\Socket\SocketInterface;
  */
 abstract class AbstractBaseProtocolAdapter implements ProtocolAdapterInterface
 {
+    const MAX_ERRORS = 5;
+
     /** @var  SocketInterface */
     protected $socket;
 
@@ -20,9 +22,30 @@ abstract class AbstractBaseProtocolAdapter implements ProtocolAdapterInterface
         $this->socket = $socket;
     }
 
-    function sendMessage($msg)
+    function sendMessage($message)
     {
-        // TODO: Implement sendMessage() method.
+        $message = $this->preProcess($message);
+        $blocks = $this->splitMessageInBlocks($message);
+        $numBlocks = count($blocks);
+        $errors = 0;
+        while(count($blocks) && ($errors <= self::MAX_ERRORS)){
+
+            $block = array_shift($blocks);
+            $msg = $this->getSignatureBlock($block, $numBlocks).$block->getContent();
+            $this->socket->write($msg);
+            $read = $this->socket->read($this->getMaxBlockSize());
+            switch($read){
+                case $this->getACK():
+                    break;
+
+                case $this->getNOACK():
+                    
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 
     function readMessage()
@@ -40,5 +63,27 @@ abstract class AbstractBaseProtocolAdapter implements ProtocolAdapterInterface
     {
         return sprintf("%06d:%03d:%03d:", $block->getLength(), $block->getOrder(), $numBlocks);
     }
+
+    /**
+     * @param string $message
+     *
+     * @return string;
+     */
+    protected function preProcess($message)
+    {
+        return $message;
+    }
+
+    /**
+     * @param string $message
+     *
+     * @return Block[]
+     */
+    protected function splitMessageInBlocks($message)
+    {
+
+    }
+
+
 
 }
