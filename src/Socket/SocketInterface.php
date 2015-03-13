@@ -11,7 +11,7 @@ interface SocketInterface
 
     public function connect($address, $port = 0);
 
-    public function read($length, $type = PHP_BINARY_READ);
+    public function read($length, $type = PHP_NORMAL_READ);
 
     public function write($buffer, $length = 0);
 

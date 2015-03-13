@@ -142,6 +142,7 @@ class ClientSocketApi
             'key' => $this->clientApiConfig->getKey(),
             'secret' => $this->clientApiConfig->getSecret(),
         );
+        $this->sprintfIfDebug("requesting '%s'", $url);
 
         return $this->postClient->call($url, $data);
     }
@@ -174,6 +175,18 @@ class ClientSocketApi
     }
 
     /**
+     * @return mixed
+     */
+    protected function readException()
+    {
+        $read = $this->socket->read(self::BLOCK_SIZE, PHP_NORMAL_READ);
+        $this->sprintfIfDebug($read);
+        $result = json_decode($read, true);
+
+        return $result['reason'];
+    }
+
+    /**
      * @param string $msg
      * @param bool   $compress
      *
@@ -189,13 +202,14 @@ class ClientSocketApi
         $len = strlen($msg);
 
         $this->sprintfIfDebug("|\tsending %d chars\n", $len);
+        //$this->sprintfIfDebug($msg);
 
         $blocks = ceil($len / self::BLOCK_SIZE);
         for ($i = 0; $i<$blocks; $i++) {
             $block = substr(
                 $msg,
                 $i * self::BLOCK_SIZE,
-                ($i == $blocks-1) ? $len - ($i-1) * self::BLOCK_SIZE : self::BLOCK_SIZE
+                ($i == $blocks-1) ? $len % self::BLOCK_SIZE : self::BLOCK_SIZE
             );
             $prefix = sprintf("%06d:%03d:%03d:", strlen($block), $i+1, $blocks);
             $aux = $prefix.$block;
@@ -210,7 +224,9 @@ class ClientSocketApi
                 $read = $this->socket->read(10, PHP_NORMAL_READ);
                 $this->sprintfIfDebug("|\tR: ".$read);
                 if(0 === strpos($read, self::NO_ACK)){
-                    return false;
+                    $this->sprintfIfDebug("NO_ACK");
+                    $e = $this->readException();
+                    throw new SocketException($e);
                 }
                 if(0 === strpos($read, self::ACK)){
                     break;
@@ -223,12 +239,11 @@ class ClientSocketApi
 
     /**
      * @param bool $compress
-     *
      * @return string
-     *
      * @throws BlockSizeSocketException
      * @throws SignatureSocketException
      * @throws SocketReadException
+     * @throws \Exception
      */
     protected function readSocket($compress = true)
     {
@@ -278,10 +293,10 @@ class ClientSocketApi
 
         $result = $compress ? $this->uncompress($buffer) : $buffer;
 
-        if ($this->debug) {
+        if($this->debug) {
             $aux = json_decode($result, true);
             if (isset($aux['data'])) {
-                $this->output->writeln("received %d keys", count($aux['data']));
+                $this->sprintfIfDebug("received %d keys", count($aux['data']));
             }
         }
 
@@ -312,7 +327,7 @@ class ClientSocketApi
         $data['command'] = $command;
         $data['project_id'] = $this->clientApiConfig->getProjectId();
 
-        $msg = json_encode($data).PHP_EOL;
+        $msg = json_encode($data);
 
         $this->sendMessage($msg);
 
@@ -326,6 +341,10 @@ class ClientSocketApi
             $result = json_decode($buffer, true);
             if (!count($result)) {
                 throw new NullSocketResponseException();
+            }
+            if(!$result['result']){
+                $this->init = false; // server is in charge to close socket
+                throw new SocketException($result['reason']);
             }
 
             return $result;

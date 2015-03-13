@@ -41,7 +41,7 @@ class Socket implements SocketInterface
      *
      * @return string
      */
-    public function read($length, $type = PHP_NORMAL_READ)
+    public function read($length, $type = PHP_BINARY_READ)
     {
         return socket_read($this->socket, $length, $type);
     }
@@ -54,9 +54,9 @@ class Socket implements SocketInterface
      */
     public function write($buffer, $length = 0)
     {
-        if ("\n" != substr($buffer, -1)) {
-            $buffer .= "\n";
-        }
+        //if ("\n" != substr($buffer, -1)) {
+        //    $buffer .= "\n";
+        //}
         if (!$length) {
             $length = strlen($buffer);
         }
