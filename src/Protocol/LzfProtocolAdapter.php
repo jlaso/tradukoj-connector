@@ -5,14 +5,26 @@ namespace JLaso\TradukojConnector\Protocol;
 /**
  * @author Joseluis Laso <jlaso@joseluislaso.es>
  */
-class LzfProtocolAdapter extends AbstractBaseProtocolAdapter
+class LzfProtocolAdapter extends RawProtocolAdapter
 {
+
     /**
-     * @return int
+     * @param string $message
+     * @return mixed
      */
-    public function getMaxBlockSize()
+    protected function preProcess($message)
     {
-        return 1024;
+        return lzf_compress($message);
     }
+
+    /**
+     * @param string $message
+     * @return mixed
+     */
+    protected function postProcess($message)
+    {
+        return lzf_decompress($message);
+    }
+
 
 }

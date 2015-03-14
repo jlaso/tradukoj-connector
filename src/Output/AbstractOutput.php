@@ -12,6 +12,9 @@ abstract class AbstractOutput implements OutputInterface
      */
     public function writeln($sprintf)
     {
-        $this->write($sprintf.PHP_EOL);
+        $args = func_get_args();
+        $args[0] .= PHP_EOL;
+
+        call_user_func_array(array($this, 'write'), $args);
     }
 }

@@ -7,5 +7,27 @@ namespace JLaso\TradukojConnector\Protocol;
  */
 class RawProtocolAdapter extends AbstractBaseProtocolAdapter
 {
+    /**
+     * @return int
+     */
+    public function getMaxBlockSize()
+    {
+        return 1024;
+    }
 
+    /**
+     * @return string
+     */
+    function getNOACK()
+    {
+        return "NO-ACK";
+    }
+
+    /**
+     * @return string
+     */
+    function getACK()
+    {
+        return "ACK";
+    }
 }

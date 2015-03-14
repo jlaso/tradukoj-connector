@@ -7,7 +7,7 @@ use JLaso\TradukojConnector\Exception\NullPostResponseException;
 /**
  * @author Joseluis Laso <jlaso@joseluislaso.es>
  */
-class PostCurl extends AbstractPostClient implements PostClientInterface
+class PostCurl extends AbstractPostClient
 {
     public function call($url, $data = array())
     {

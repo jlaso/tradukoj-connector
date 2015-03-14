@@ -43,7 +43,13 @@ class Socket implements SocketInterface
      */
     public function read($length, $type = PHP_BINARY_READ)
     {
-        return socket_read($this->socket, $length, $type);
+        $result = socket_read($this->socket, $length, $type);
+
+        if(PHP_NORMAL_READ == $type){
+            $result = trim($result);
+        }
+
+        return $result;
     }
 
     /**
