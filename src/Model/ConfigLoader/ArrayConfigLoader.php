@@ -1,6 +1,6 @@
 <?php
 
-namespace JLaso\TradukojConnector\Model\Loader;
+namespace JLaso\TradukojConnector\Model\ConfigLoader;
 
 use JLaso\TradukojConnector\Exception\InvalidConfigException;
 use JLaso\TradukojConnector\Model\ClientApiConfig;
@@ -8,7 +8,7 @@ use JLaso\TradukojConnector\Model\ClientApiConfig;
 /**
  * @author Joseluis Laso <jlaso@joseluislaso.es>
  */
-class ArrayLoader implements LoaderInterface
+class ArrayConfigLoader implements ConfigLoaderInterface
 {
     /**
      * @param array $source

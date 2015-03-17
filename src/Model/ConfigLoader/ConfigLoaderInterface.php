@@ -1,13 +1,13 @@
 <?php
 
-namespace JLaso\TradukojConnector\Model\Loader;
+namespace JLaso\TradukojConnector\Model\ConfigLoader;
 
 use JLaso\TradukojConnector\Model\ClientApiConfig;
 
 /**
  * @author Joseluis Laso <jlaso@joseluislaso.es>
  */
-interface LoaderInterface
+interface ConfigLoaderInterface
 {
     /**
      * @param $source

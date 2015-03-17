@@ -2,7 +2,7 @@
 
 namespace JLaso\TradukojConnector\Tests\Model;
 
-use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
+use JLaso\TradukojConnector\Model\ConfigLoader\ArrayConfigLoader;
 
 class LoaderConfigTest extends \PHPUnit_Framework_TestCase
 {
@@ -15,7 +15,7 @@ class LoaderConfigTest extends \PHPUnit_Framework_TestCase
             'url' => 'https://localhost/api/',
         );
 
-        $config = ArrayLoader::load($configArray);
+        $config = ArrayConfigLoader::load($configArray);
 
         $this->assertEquals($configArray['project_id'], $config->getProjectId());
         $this->assertEquals($configArray['key'], $config->getKey());
@@ -28,7 +28,6 @@ class LoaderConfigTest extends \PHPUnit_Framework_TestCase
      */
     public function testInvalidConfigException()
     {
-        $loader = new ArrayLoader();
-        $config = $loader->load(array());
+        $config = ArrayConfigLoader::load(array());
     }
 }

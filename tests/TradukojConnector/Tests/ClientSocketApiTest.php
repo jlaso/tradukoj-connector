@@ -3,7 +3,7 @@
 namespace JLaso\TradukojConnector\Tests;
 
 use JLaso\TradukojConnector\ClientSocketApi;
-use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
+use JLaso\TradukojConnector\Model\ConfigLoader\ArrayConfigLoader;
 use JLaso\TradukojConnector\Output\ConsoleOutput;
 use JLaso\TradukojConnector\Output\NullOutput;
 use JLaso\TradukojConnector\Socket\SocketInterface;
@@ -65,7 +65,7 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
             ))
         ;
 
-        $config = ArrayLoader::load($this->getConfigArray());
+        $config = ArrayConfigLoader::load($this->getConfigArray());
 
         $postClient = $this->getMock('JLaso\\TradukojConnector\\PostClient\\PostClientInterface');
         $postClient
@@ -117,52 +117,11 @@ class ClientSocketApiTest extends \PHPUnit_Framework_TestCase
         $this->clientSocketApi->init();
     }
 
-    public function testCompress()
-    {
-        $serverSocketRequest = self::getMethod('compress');
-        $data = str_repeat('abcde', 10);
-        $compressed = $serverSocketRequest->invokeArgs($this->clientSocketApi, array($data));
-
-        $this->assertLessThan(strlen($data), strlen($compressed));
-
-        $serverSocketRequest = self::getMethod('uncompress');
-        $uncompressed = $serverSocketRequest->invokeArgs($this->clientSocketApi, array($compressed));
-
-        $this->assertGreaterThan(strlen($compressed), strlen($uncompressed));
-
-        $this->assertEquals($data, $uncompressed);
-    }
-
-    public function testSprintfIfDebug()
-    {
-        $debug = self::getProperty('debug');
-        $debug->setValue($this->clientSocketApi, true);
-
-        $this->assertTrue($debug->getValue($this->clientSocketApi));
-
-        $consoleOutput = new ConsoleOutput();
-        $output = self::getProperty('output');
-        $output->setValue($this->clientSocketApi, $consoleOutput);
-
-        $sprintfIfDebug = self::getMethod('sprintfIfDebug');
-        $this->expectOutputString('test');
-        $sprintfIfDebug->invokeArgs($this->clientSocketApi, array('test'));
-    }
-
+    
     public function testServiceCalls()
     {
-        //        $debug = self::getProperty('debug');
-//        $debug->setValue($this->clientSocketApi, true);
-//
-//        $consoleOutput = new ConsoleOutput();
-//        $output = self::getProperty('output');
-//        $output->setValue($this->clientSocketApi, $consoleOutput);
-
         $init = $this->getProperty('init');
         $init->setValue($this->clientSocketApi, true);
-
-        $result = $this->clientSocketApi->getBundleIndex();
-        $this->assertFalse($result['result']);
 
         $result = $this->clientSocketApi->getCatalogIndex();
         $this->assertFalse($result['result']);

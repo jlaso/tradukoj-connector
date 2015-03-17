@@ -3,7 +3,7 @@
 namespace JLaso\TradukojConnector\Tests;
 
 use JLaso\TradukojConnector\ClientSocketApi;
-use JLaso\TradukojConnector\Model\Loader\ArrayLoader;
+use JLaso\TradukojConnector\Model\ConfigLoader\ArrayConfigLoader;
 use JLaso\TradukojConnector\Output\NullOutput;
 use JLaso\TradukojConnector\Socket\SocketInterface;
 use JLaso\TradukojConnector\PostClient\PostClientInterface;
@@ -65,7 +65,7 @@ class ClientReadSocketTest extends \PHPUnit_Framework_TestCase
             ->will($this->returnCallback(function ($length) { return ClientReadSocketTest::readSocketMock($length); }))
         ;
 
-        $config = ArrayLoader::load($this->getConfigArray());
+        $config = ArrayConfigLoader::load($this->getConfigArray());
 
         $postClient = $this->getMock('JLaso\\TradukojConnector\\PostClient\\PostClientInterface');
 
