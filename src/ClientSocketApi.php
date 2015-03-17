@@ -10,7 +10,12 @@ use JLaso\TradukojConnector\Exception\SignatureSocketException;
 use JLaso\TradukojConnector\Exception\SocketException;
 use JLaso\TradukojConnector\Exception\SocketReadException;
 use JLaso\TradukojConnector\Model\ClientApiConfig;
+use JLaso\TradukojConnector\Output\NullOutput;
 use JLaso\TradukojConnector\Output\OutputInterface;
+use JLaso\TradukojConnector\Protocol\GzProtocolAdapter;
+use JLaso\TradukojConnector\Protocol\LzfProtocolAdapter;
+use JLaso\TradukojConnector\Protocol\ProtocolAdapterInterface;
+use JLaso\TradukojConnector\Protocol\RawProtocolAdapter;
 use JLaso\TradukojConnector\Socket\SocketInterface;
 use JLaso\TradukojConnector\PostClient\PostClientInterface;
 
@@ -26,7 +31,11 @@ class ClientSocketApi
     /** @var ClientApiConfig */
     protected $clientApiConfig;
     /** @var  OutputInterface */
+    protected $debugOutput;
+    /** @var  OutputInterface */
     protected $output;
+    /** @var  ProtocolAdapterInterface */
+    protected $protocolAdapter;
 
     protected $init = false;
     protected $debug;
@@ -34,11 +43,12 @@ class ClientSocketApi
     const DONT_WAIT_RESPONSE = false;
     const WAIT_RESPONSE = true;
 
-    const ACK    = 'ACK';
-    const NO_ACK = 'NO-ACK';
-    const BLOCK_SIZE = 1024;
+//    const ACK = 'ACK';
+//    const NO_ACK = 'NO-ACK';
+//    const BLOCK_SIZE = 1024;
 
     const DEBUG = false;  // initial status of debug if not passed to constructor
+    const COMPRESS = true;  // initial status of compress if not passed to constructor
 
     // create socket request endpoints
     const REQUEST_SOCKET_LZF = 'create-socket';
@@ -46,13 +56,7 @@ class ClientSocketApi
 
     // service commands
     const SVC_SHUTDOWN = 'shutdown';
-    //const SVC_GET_BUNDLE_INDEX = 'bundle-index';
     const SVC_GET_CATALOG_INDEX = 'catalog-index';
-    //const SVC_GET_KEY_INDEX = 'key-index';
-    //const SVC_GET_TRANSLATIONS = 'translations';
-    //const SVC_GET_TRANSLATION_DETAILS = 'translation-details';
-    //const SVC_GET_COMMENT = 'get-comment';
-    //const SVC_PUT_MESSAGE = 'put-message';
     const SVC_UPDATE_MESSAGE_IF_NEWEST = 'update-message-if-newest';
     const SVC_UPDATE_COMMENT_IF_NEWEST = 'update-comment-if-newest';
     const SVC_UPLOAD_KEYS = 'upload-keys';
@@ -67,19 +71,38 @@ class ClientSocketApi
      * @param SocketInterface     $socket
      * @param PostClientInterface $postClient
      * @param bool                $debug
+     * @param bool                $compress
      */
     public function __construct(
         ClientApiConfig $clientApiConfig,
         SocketInterface $socket,
         PostClientInterface $postClient,
         OutputInterface $output,
-        $debug = self::DEBUG
+        $debug = self::DEBUG,
+        $compress = self::COMPRESS
     ) {
         $this->debug = $debug;
         $this->socket = $socket;
         $this->postClient = $postClient;
         $this->clientApiConfig = $clientApiConfig;
         $this->output = $output;
+
+        $this->debugOutput = $debug ? $output : new NullOutput();
+
+        // strategy to select the Protocol that fits the best
+        switch(true){
+            case !$compress:
+                $this->protocolAdapter = new RawProtocolAdapter($socket, $this->debugOutput);
+                break;
+
+            case function_exists('lzf_compress'):
+                $this->protocolAdapter = new LzfProtocolAdapter($socket, $this->debugOutput);
+                break;
+
+            default:
+                $this->protocolAdapter = new GzProtocolAdapter($socket, $this->debugOutput);
+                break;
+        }
     }
 
     /**
@@ -88,7 +111,7 @@ class ClientSocketApi
     public function __destruct()
     {
         if ($this->init) {
-            $this->shutdown();
+            //$this->shutdown();
         }
     }
 
@@ -100,6 +123,9 @@ class ClientSocketApi
      */
     public function init($address = '', $port = 0)
     {
+        if ($this->init) {
+            $this->socket->close();
+        }
         if (!$address && !$port) {
             $info = $this->serverSocketRequest();
 
@@ -109,14 +135,10 @@ class ClientSocketApi
             $address = $info['host'];
             $port = $info['port'];
         }
-
-        if ($this->init) {
-            $this->socket->close();
-        }
         // wait to populate socket
         sleep(2);
 
-        $this->sprintfIfDebug("Connecting with %s through port %d\n", trim($address), intval($port));
+        $this->debugOutput->write("Connecting with %s through port %d\n", trim($address), intval($port));
 
         $this->socket->connect(trim($address), intval($port));
 
@@ -142,36 +164,9 @@ class ClientSocketApi
             'key' => $this->clientApiConfig->getKey(),
             'secret' => $this->clientApiConfig->getSecret(),
         );
-        $this->sprintfIfDebug("requesting '%s'", $url);
+        $this->debugOutput->write("requesting '%s'", $url);
 
         return $this->postClient->call($url, $data);
-    }
-
-    /**
-     * @param string $message
-     *
-     * @return string
-     */
-    protected function compress($message)
-    {
-        return function_exists('lzf_compress') ? lzf_compress($message) :  gzcompress($message, 9);
-    }
-
-    /**
-     * @param string $message
-     *
-     * @return string
-     */
-    protected function uncompress($message)
-    {
-        return function_exists('lzf_compress') ? lzf_decompress($message) : gzuncompress($message);
-    }
-
-    protected function sprintfIfDebug($msg)
-    {
-        if ($this->debug) {
-            call_user_func_array(array($this->output, "write"), func_get_args());
-        }
     }
 
     /**
@@ -179,8 +174,8 @@ class ClientSocketApi
      */
     protected function readException()
     {
-        $read = $this->socket->read(self::BLOCK_SIZE, PHP_NORMAL_READ);
-        $this->sprintfIfDebug($read);
+        $read = $this->socket->read(100, PHP_NORMAL_READ);
+        $this->debugOutput->write($read);
         $result = json_decode($read, true);
 
         return $result['reason'];
@@ -188,119 +183,19 @@ class ClientSocketApi
 
     /**
      * @param string $msg
-     * @param bool   $compress
      *
      * @return bool
-     *
      * @throws SocketException
      */
-    protected function sendMessage($msg, $compress = true)
+    protected function sendMessage($msg)
     {
-        $this->sprintfIfDebug("|-- sending '%s'\n", $msg);
+        $this->debugOutput->write("|-- sending '%s'\n", $msg);
 
-        $msg = $compress ? $this->compress($msg) : $msg.PHP_EOL;
-        $len = strlen($msg);
-
-        $this->sprintfIfDebug("|\tsending %d chars\n", $len);
-        //$this->sprintfIfDebug($msg);
-
-        $blocks = ceil($len / self::BLOCK_SIZE);
-        for ($i = 0; $i<$blocks; $i++) {
-            $block = substr(
-                $msg,
-                $i * self::BLOCK_SIZE,
-                ($i == $blocks-1) ? $len % self::BLOCK_SIZE : self::BLOCK_SIZE
-            );
-            $prefix = sprintf("%06d:%03d:%03d:", strlen($block), $i+1, $blocks);
-            $aux = $prefix.$block;
-
-            $this->sprintfIfDebug("|\t\tsending block %d of %d, prefix = %s\n", $i+1, $blocks, $prefix);
-
-            if (false === $this->socket->write($aux)) {
-                throw new SocketException();
-            };
-
-            do {
-                $read = $this->socket->read(10, PHP_NORMAL_READ);
-                $this->sprintfIfDebug("|\tR: ".$read);
-                if(0 === strpos($read, self::NO_ACK)){
-                    $this->sprintfIfDebug("NO_ACK");
-                    $e = $this->readException();
-                    throw new SocketException($e);
-                }
-                if(0 === strpos($read, self::ACK)){
-                    break;
-                }
-            } while ($read);
+        if (false == $this->protocolAdapter->sendMessage($msg)){
+            throw new SocketException(sprintf("Error sending message '%s", $msg));
         }
 
         return true;
-    }
-
-    /**
-     * @param bool $compress
-     * @return string
-     * @throws BlockSizeSocketException
-     * @throws SignatureSocketException
-     * @throws SocketReadException
-     * @throws \Exception
-     */
-    protected function readSocket($compress = true)
-    {
-        $this->sprintfIfDebug("\n-------readSocket-------\n\n");
-        $buffer = '';
-        $overload = strlen('000000:000:000:');
-        do {
-            $buf = $this->socket->read($overload + self::BLOCK_SIZE, PHP_BINARY_READ);
-            if (false === $buf) {
-                throw new SocketReadException($this->socket->lastErrorAsString());
-            }
-
-            if (!trim($buf)) {
-                return '';
-            }
-
-            $this->sprintfIfDebug(sprintf("Received '%s'\n", $buf));
-
-            if (substr_count($buf, ":") < 3) {
-                throw new SignatureSocketException('error in format');
-            }
-
-            list($size, $block, $blocks) = explode(":", $buf);
-
-            $aux = substr($buf, $overload);
-
-            $this->sprintfIfDebug("\t(*) received block %d of %d (start of block `%s`)\n", $block, $blocks, substr($aux, 0, 20));
-
-            if(!$this->debug) {
-                $this->output->write('R');
-            }
-
-            if ($size == strlen($aux)) {
-                $this->socket->write(self::ACK);
-            } else {
-                $this->socket->write(self::NO_ACK);
-                throw new BlockSizeSocketException(
-                    sprintf(
-                        'error in size (block %d of %d): informed %d vs %d read',
-                        $block, $blocks, $size, strlen($aux)
-                    )
-                );
-            }
-
-            $buffer .= $aux;
-        } while ($block < $blocks);
-
-        $result = $compress ? $this->uncompress($buffer) : $buffer;
-
-        if($this->debug) {
-            $aux = json_decode($result, true);
-            if (isset($aux['data'])) {
-                $this->sprintfIfDebug("received %d keys", count($aux['data']));
-            }
-        }
-
-        return $result;
     }
 
     /**
@@ -332,11 +227,10 @@ class ClientSocketApi
         $this->sendMessage($msg);
 
         if(self::WAIT_RESPONSE == $waitReponse) {
-            $buffer = $this->readSocket();
 
-            if ($this->debug) {
-                print $buffer;
-            }
+            $buffer = $this->protocolAdapter->readMessage();
+
+            $this->debugOutput->write($buffer);
 
             $result = json_decode($buffer, true);
             if (!count($result)) {
@@ -366,13 +260,6 @@ class ClientSocketApi
         $this->init = false;
     }
 
-//    /**
-//     * @return mixed
-//     */
-//    public function getBundleIndex()
-//    {
-//        return $this->callService(self::SVC_GET_BUNDLE_INDEX);
-//    }
 
     /**
      * @return mixed
@@ -387,90 +274,6 @@ class ClientSocketApi
 
         return array();
     }
-
-//    /**
-//     * @param string $bundle
-//     *
-//     * @return mixed
-//     */
-//    public function getKeyIndex($bundle)
-//    {
-//        return $this->callService(self::SVC_GET_KEY_INDEX, array('bundle' => $bundle));
-//    }
-
-//    /**
-//     * @param string $bundle
-//     * @param string $key
-//     *
-//     * @return mixed
-//     */
-//    public function getMessages($bundle, $key)
-//    {
-//        return $this->callService(
-//            self::SVC_GET_TRANSLATIONS,
-//            array(
-//                'bundle'     => $bundle,
-//                'key'        => $key,
-//            )
-//        );
-//    }
-//
-//    /**
-//     * @param string $bundle
-//     * @param string $key
-//     * @param string $locale
-//     *
-//     * @return mixed
-//     */
-//    public function getMessage($bundle, $key, $locale)
-//    {
-//        return $this->callService(
-//            self::SVC_GET_TRANSLATION_DETAILS,
-//            array(
-//                'bundle'     => $bundle,
-//                'key'        => $key,
-//                'language'   => $locale,
-//            )
-//        );
-//    }
-
-//    /**
-//     * @param string $bundle
-//     * @param string $key
-//     *
-//     * @return mixed
-//     */
-//    public function getComment($bundle, $key)
-//    {
-//        return $this->callService(
-//            self::SVC_GET_COMMENT,
-//            array(
-//                'bundle'     => $bundle,
-//                'key'        => $key,
-//            )
-//        );
-//    }
-//
-//    /**
-//     * @param string $bundle
-//     * @param string $key
-//     * @param string $language
-//     * @param string $message
-//     *
-//     * @return mixed
-//     */
-//    public function putMessage($bundle, $key, $language, $message)
-//    {
-//        return $this->callService(
-//            self::SVC_PUT_MESSAGE,
-//            array(
-//                'bundle'     => $bundle,
-//                'key'        => $key,
-//                'language'   => $language,
-//                'message'    => $message,
-//            )
-//        );
-//    }
 
     /**
      * @param string    $bundle
@@ -526,7 +329,7 @@ class ClientSocketApi
      */
     public function uploadKeys($catalog, $data)
     {
-        $this->sprintfIfDebug("sending %d keys in catalog %s\n", count($data), $catalog);
+        $this->debugOutput->write("sending %d keys in catalog %s\n", count($data), $catalog);
 
         return $this->callService(
             self::SVC_UPLOAD_KEYS,

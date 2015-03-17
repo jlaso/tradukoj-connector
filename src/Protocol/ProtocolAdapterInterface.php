@@ -1,7 +1,8 @@
 <?php
 
 namespace JLaso\TradukojConnector\Protocol;
-use JLaso\TradukojConnector\Model\Block;
+
+use JLaso\TradukojConnector\Output\OutputInterface;
 use JLaso\TradukojConnector\Socket\SocketInterface;
 
 /**
@@ -12,7 +13,7 @@ interface ProtocolAdapterInterface
     /**
      * @param SocketInterface $socket
      */
-    function __construct(SocketInterface $socket);
+    public function __construct(SocketInterface $socket, OutputInterface $output);
 
     /**
      * @return int
