@@ -18,7 +18,6 @@ class PostCurl extends AbstractPostClient implements PostClientInterface
         curl_setopt($hdl, CURLOPT_TIMEOUT, 10);
         curl_setopt($hdl, CURLOPT_POST, true);
         curl_setopt($hdl, CURLOPT_POSTFIELDS, $postFields);
-        curl_setopt($hdl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($hdl, CURLINFO_CONTENT_TYPE, 'application_json');
         curl_setopt($hdl, CURLOPT_SSL_VERIFYPEER, false);
 
